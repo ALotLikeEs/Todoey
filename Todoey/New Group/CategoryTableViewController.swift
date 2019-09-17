@@ -8,6 +8,7 @@
 import UIKit
 import CoreData
 import RealmSwift
+import SwipeCellKit
 
 class CategoryTableViewController: UITableViewController {
     
@@ -20,6 +21,7 @@ class CategoryTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategory()
+        tableView.rowHeight = 80.0
     }
     
     //MARK: - TableView Datasource Methods
@@ -28,8 +30,9 @@ class CategoryTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let categoryCell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier, for: indexPath)
+        let categoryCell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier, for: indexPath) as! SwipeTableViewCell
         categoryCell.textLabel?.text = categories?[indexPath.row].name ?? "No catergories added yet"
+        categoryCell.delegate = self
         return categoryCell
     }
     
@@ -90,5 +93,31 @@ class CategoryTableViewController: UITableViewController {
         categories = realm.objects(Category.self)
         
         tableView.reloadData()
+    }
+}
+
+//Mark: - Swipe Cell Delegate Methods
+extension CategoryTableViewController: SwipeTableViewCellDelegate {
+    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
+        guard orientation == .right else { return nil }
+        
+        let deleteAction = SwipeAction(style: .destructive, title: "Delete") { action, indexPath in
+            
+            if let rowToDelete = self.categories?[indexPath.row] {
+                do {
+                    try self.realm.write {
+                        self.realm.delete(rowToDelete)
+                    }
+                } catch {
+                    print("There was an error deleting the category -> \(error)")
+                }
+                self.tableView.reloadData()
+            }
+        }
+        
+        // customize the action appearance
+        deleteAction.image = UIImage(named: "delete")
+        
+        return [deleteAction]
     }
 }
